@@ -155,4 +155,4 @@ igram-app/
 - Make sure MongoDB is running before starting the backend
 - The creator account is static (only one creator exists)
 - All consumers must register before they can login
-- Image URLs should be valid URLs pointing to images on the web
+- Image URLs should be valid URLs pointing to images on the web.
