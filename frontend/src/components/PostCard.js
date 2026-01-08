@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api, API_BASE_URL } from '../api';
 import './PostCard.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdded, onComment, isConsumerView = false, consumerName = '' }) => {
   const [commentText, setCommentText] = useState('');
@@ -67,7 +65,7 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
     } else {
       // Authenticated user
       try {
-        await axios.post(`${API_URL}/comments`, {
+        await api.post('/api/comments', {
           postId: post._id,
           text: commentText
         });
@@ -83,7 +81,7 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
     if (!window.confirm('Are you sure you want to delete this post?')) return;
 
     try {
-      await axios.delete(`${API_URL}/posts/${post._id}`);
+      await api.delete(`/api/posts/${post._id}`);
       onPostDeleted(post._id);
     } catch (err) {
       console.error('Failed to delete post:', err);
@@ -97,12 +95,12 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
     try {
       if (isConsumerView && consumerName) {
         // Consumer view - use public delete route
-        await axios.delete(`${API_URL}/comments/public/${commentId}`, {
+        await api.delete(`/api/comments/public/${commentId}`, {
           data: { consumerName: consumerName }
         });
       } else {
         // Authenticated user
-        await axios.delete(`${API_URL}/comments/${commentId}`);
+        await api.delete(`/api/comments/${commentId}`);
       }
       onCommentAdded(); // Refresh comments
     } catch (err) {
@@ -127,7 +125,7 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
   const mediaUrl = post.imageUrl
     ? (post.imageUrl.startsWith('http')
         ? post.imageUrl
-        : `http://localhost:5000${post.imageUrl}`)
+        : `${API_BASE_URL}${post.imageUrl}`)
     : null;
 
   const isVideo =

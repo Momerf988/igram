@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { api } from '../api';
 import './Auth.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 const ConsumerSignup = () => {
   const [name, setName] = useState('');
@@ -32,7 +30,7 @@ const ConsumerSignup = () => {
 
     try {
       // Check if name is available and register (or sign in if exists)
-      const response = await axios.post(`${API_URL}/consumers/register`, {
+      const response = await api.post('/api/consumers/register', {
         name: name.trim()
       });
       

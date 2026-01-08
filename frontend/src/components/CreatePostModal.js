@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import './Modal.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 const CreatePostModal = ({ onClose, onPostCreated }) => {
   const [title, setTitle] = useState('');
@@ -85,7 +83,7 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
       const peopleString = peopleNames.join(', ');
       formData.append('people', peopleString);
 
-      const response = await axios.post(`${API_URL}/posts`, formData, {
+      const response = await api.post('/api/posts', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

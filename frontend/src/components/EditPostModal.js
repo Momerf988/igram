@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import './Modal.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 const EditPostModal = ({ post, onClose, onPostUpdated }) => {
   const [caption, setCaption] = useState(post.caption || '');
@@ -27,7 +25,7 @@ const EditPostModal = ({ post, onClose, onPostUpdated }) => {
         formData.append('image', imageFile);
       }
 
-      const response = await axios.put(`${API_URL}/posts/${post._id}`, formData, {
+      const response = await api.put(`/api/posts/${post._id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

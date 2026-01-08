@@ -1,10 +1,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import { api } from '../api';
 import './Auth.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 const CreatorLogin = () => {
   const [formData, setFormData] = useState({
@@ -40,7 +38,7 @@ const CreatorLogin = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, formData);
+      const response = await api.post('/api/auth/login', formData);
       
       // Check if user is creator
       if (response.data.user.role !== 'creator') {

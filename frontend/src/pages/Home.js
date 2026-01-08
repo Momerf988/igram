@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import { api } from '../api';
 import PostCard from '../components/PostCard';
 import CreatePostModal from '../components/CreatePostModal';
 import './Home.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 const Home = () => {
   const { user, logout } = useContext(AuthContext);
@@ -37,7 +35,7 @@ const Home = () => {
 
   const fetchPosts = async () => {
     try {
-      const response = await axios.get(`${API_URL}/posts`);
+      const response = await api.get('/api/posts');
       setPosts(response.data);
       setFilteredPosts(response.data);
     } catch (err) {
@@ -65,7 +63,7 @@ const Home = () => {
 
   const handleLikeToggle = async (postId) => {
     try {
-      await axios.post(`${API_URL}/likes/${postId}`);
+      await api.post(`/api/likes/${postId}`);
       fetchPosts();
     } catch (err) {
       console.error('Failed to toggle like:', err);

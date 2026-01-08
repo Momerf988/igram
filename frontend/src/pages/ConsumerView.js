@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import { api } from '../api';
 import PostCard from '../components/PostCard';
 import './ConsumerView.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 const ConsumerView = () => {
   const navigate = useNavigate();
@@ -43,7 +41,7 @@ const ConsumerView = () => {
 
   const fetchPosts = async () => {
     try {
-      const response = await axios.get(`${API_URL}/posts/public`);
+      const response = await api.get('/api/posts/public');
       setPosts(response.data);
       setFilteredPosts(response.data);
     } catch (err) {
@@ -59,7 +57,7 @@ const ConsumerView = () => {
     }
 
     try {
-      await axios.post(`${API_URL}/likes/public/${postId}`, {
+      await api.post(`/api/likes/public/${postId}`, {
         consumerName: consumerName.trim()
       });
       fetchPosts();
@@ -78,7 +76,7 @@ const ConsumerView = () => {
     }
 
     try {
-      await axios.post(`${API_URL}/comments/public`, {
+      await api.post('/api/comments/public', {
         postId,
         text: commentText,
         consumerName: consumerName.trim()
