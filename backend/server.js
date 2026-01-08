@@ -20,15 +20,49 @@ app.use(express.json());
 // Serve uploaded images statically
 app.use('/uploads', express.static(uploadsDir));
 
-// MongoDB connection check middleware
-// This allows the server to start immediately and return 503 if DB isn't ready yet
-// Required for Azure App Service compatibility where server must listen before DB connects
+/**
+ * ✅ Simple routes so browser checks don't show "Cannot GET /" or "Cannot GET /api"
+ * These do NOT require the database.
+ */
+app.get('/', (req, res) => {
+  res.status(200).send('igram backend running ✅');
+});
+
+app.get('/api', (req, res) => {
+  res.status(200).json({ ok: true, message: 'API running ✅' });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    ok: true,
+    db: mongoose.connection.readyState === 1 ? 'connected' : 'not_connected',
+  });
+});
+
+/**
+ * MongoDB connection check middleware
+ * - Keeps Azure happy by allowing the server to start immediately
+ * - Returns 503 ONLY for routes that actually need the DB
+ * - Does NOT block '/', '/api', '/health', or '/uploads'
+ */
 app.use((req, res, next) => {
+  // Always allow these routes even if DB is down
+  if (
+    req.path === '/' ||
+    req.path === '/api' ||
+    req.path === '/health' ||
+    req.path.startsWith('/uploads')
+  ) {
+    return next();
+  }
+
+  // For everything else (your real API endpoints), require DB
   if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ 
-      message: 'Database not connected. Please wait a moment and try again.' 
+    return res.status(503).json({
+      message: 'Database not connected. Please wait a moment and try again.',
     });
   }
+
   next();
 });
 
@@ -43,7 +77,7 @@ app.use('/api/consumers', require('./routes/consumers'));
 async function initializeCreator() {
   const User = require('./models/User');
   const bcrypt = require('bcryptjs');
-  
+
   try {
     const creatorExists = await User.findOne({ role: 'creator' });
     if (!creatorExists) {
@@ -53,7 +87,7 @@ async function initializeCreator() {
         name: 'Omer',
         email: 'creator@igram.com',
         password: hashedPassword,
-        role: 'creator'
+        role: 'creator',
       });
       console.log('✅ Default creator account created:');
       console.log('   Email: creator@igram.com');
@@ -72,45 +106,49 @@ async function connectToMongoDB() {
 
   try {
     console.log('🔄 Connecting to MongoDB...');
+
     await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+      // Cosmos can be a bit slower sometimes; these help avoid flaky monitor timeouts
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 30000,
     });
-    
+
     console.log('✅ Connected to MongoDB successfully!');
-    
-    // Create default creator account if it doesn't exist (async, non-blocking)
+
+    // Create default creator account if it doesn't exist
+    // Keep this non-fatal (it already is), so the app stays alive even if init fails.
     await initializeCreator();
-    
   } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);
     console.error('\n💡 Please check:');
     console.error('   1. Is MongoDB running? (if using local MongoDB)');
     console.error('   2. Is your MONGODB_URI correct in .env file?');
     console.error('   3. See MONGODB_SETUP.md for setup instructions\n');
-    console.error('   Current MONGODB_URI:', mongoURI.replace(/\/\/.*@/, '//***:***@'));
+    console.error(
+      '   Current MONGODB_URI:',
+      mongoURI.replace(/\/\/.*@/, '//***:***@')
+    );
     // Don't exit process - allow server to continue running
-    // The middleware will return 503 responses until connection is established
+    // The middleware will return 503 for DB-dependent endpoints until connection is established
   }
 }
 
-// AZURE APP SERVICE REQUIREMENT:
-// Azure requires the HTTP server to start listening immediately on process.env.PORT
-// If the server doesn't listen within the startup timeout window, Azure terminates
-// the container with a 503 error (ContainerTimeOut). This is why we must call
-// app.listen() BEFORE waiting for database connections or any initialization.
+/**
+ * AZURE APP SERVICE REQUIREMENT:
+ * Azure requires the HTTP server to start listening immediately on process.env.PORT.
+ * If the server doesn't listen quickly, Azure terminates the container (503 ContainerTimeOut).
+ * That's why we call app.listen() BEFORE waiting for DB connections or initialization.
+ */
 const PORT = process.env.PORT || 8080;
 
 // Start the HTTP server immediately (Azure requirement)
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 API available at http://localhost:${PORT}/api`);
-  
+
   // Connect to MongoDB after server is listening (non-blocking)
-  // This ensures Azure sees the container as "ready" while DB connection happens in background
-  connectToMongoDB().catch(err => {
-    // Already handled in connectToMongoDB, but ensure no unhandled promise rejection
-    console.error('MongoDB connection attempt failed, will retry on next request');
+  connectToMongoDB().catch(() => {
+    // connectToMongoDB already logs details; this avoids unhandled promise rejection warnings
+    console.error('MongoDB connection attempt failed (will keep serving /health etc.)');
   });
 });
