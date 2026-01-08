@@ -18,7 +18,11 @@ jobs:
         with:
           node-version: 20.x
 
-      - name: Deploy backend to Azure
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Deploy backend (with node_modules)
         uses: azure/webapps-deploy@v3
         with:
           app-name: igram-backend-22559
