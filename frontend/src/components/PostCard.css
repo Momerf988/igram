@@ -1,0 +1,304 @@
+.post-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.post-creator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.creator-badge {
+  background: #667eea;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.post-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.3s;
+}
+
+.edit-btn {
+  background: #4caf50;
+  color: white;
+}
+
+.delete-btn {
+  background: #f44336;
+  color: white;
+}
+
+.edit-btn:hover,
+.delete-btn:hover {
+  opacity: 0.9;
+}
+
+.post-media {
+  width: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.post-image {
+  height: auto;
+  width: 100%;
+}
+
+.post-video {
+  height: auto;
+  width: 100%;
+  object-fit: contain;
+}
+
+.post-content {
+  padding: 15px;
+}
+
+.post-actions-bar {
+  margin-bottom: 10px;
+}
+
+.like-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.like-btn:hover {
+  opacity: 0.7;
+}
+
+.post-title {
+  margin-bottom: 10px;
+}
+
+.post-title h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.post-caption {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.post-metadata {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.metadata-item {
+  display: inline-block;
+  margin-right: 15px;
+}
+
+.people-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.people-label {
+  margin-right: 4px;
+}
+
+.people-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.people-chip-display {
+  display: inline-block;
+  background: #e3e8f0;
+  color: #333;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.post-comments {
+  margin-top: 10px;
+}
+
+.comments-list {
+  margin-bottom: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.comment {
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.comment-content {
+  flex: 1;
+}
+
+.comment strong {
+  margin-right: 5px;
+}
+
+.delete-comment-btn {
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: opacity 0.3s;
+  flex-shrink: 0;
+}
+
+.delete-comment-btn:hover {
+  opacity: 0.8;
+}
+
+.comment-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.comment-input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.comment-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.comment-btn {
+  padding: 8px 16px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.3s;
+}
+
+.comment-btn:hover {
+  opacity: 0.9;
+}
+
+.comment-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.comment-input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.name-input-section {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #e0e0e0;
+}
+
+.name-prompt {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.name-error {
+  color: #f44336;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.name-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.name-input-inline {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  outline: none;
+}
+
+.name-input-inline:focus {
+  border-color: #667eea;
+}
+
+.submit-name-btn-inline {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.3s;
+}
+
+.submit-name-btn-inline:hover {
+  opacity: 0.9;
+}
