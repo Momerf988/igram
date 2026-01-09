@@ -7,7 +7,7 @@ const auth = require('../middleware/auth');
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 
-// Multer configuration for file uploads
+// Multer setup for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '..', 'uploads'));
@@ -34,31 +34,32 @@ const upload = multer({
 });
 
 // ==========================================
-// FIXED ROUTE: Public Feed
+// PUBLIC FEED (Fixed: No Sorting)
 // ==========================================
 router.get('/public', async (req, res) => {
   try {
+    // 1. We removed .sort({ createdAt: -1 }) to stop the Azure error
     const posts = await Post.find()
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
-        options: { sort: { createdAt: -1 } },
-        // Deep populate: Populate the 'user' field INSIDE the comments
+        // 2. We removed sorting from comments too
         populate: {
           path: 'user',
           select: 'username name role'
         }
-      })
-      .sort({ createdAt: -1 });
+      });
     
+    // Note: Posts might appear in random order until Azure indexing is fully ready,
+    // but the 500 error will be gone.
     res.json(posts);
   } catch (error) {
-    console.error("Error in public feed:", error);
+    console.error("Public feed error:", error);
     res.status(500).json({ message: error.message });
   }
 });
 
-// Get all posts (authenticated - for creator view)
+// Authenticated Feed (For consistency, removed sort here too temporarily)
 router.get('/', auth, async (req, res) => {
   try {
     const posts = await Post.find()
@@ -69,8 +70,7 @@ router.get('/', auth, async (req, res) => {
           path: 'user',
           select: 'username name role'
         }
-      })
-      .sort({ createdAt: -1 });
+      });
     
     res.json(posts);
   } catch (error) {
@@ -78,7 +78,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Get single post
+// Get Single Post
 router.get('/:id', auth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
@@ -101,7 +101,7 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// Create post (only creator) - accepts image/video file upload
+// Create Post
 router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
     if (req.user.role !== 'creator') {
@@ -110,7 +110,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
 
     const { title, caption, location, people } = req.body;
 
-    // Media is optional - can create text-only posts
+    // Media is optional
     let imageUrl = null;
     let mediaType = null;
     
@@ -119,7 +119,6 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       mediaType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
     }
 
-    // At least caption or media must be provided
     if (!caption && !imageUrl) {
       return res.status(400).json({ message: 'Either caption or media file is required' });
     }
@@ -146,29 +145,13 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
         }
       });
 
-    // Ensure all fields are included in response
-    const postResponse = {
-      _id: populatedPost._id,
-      creator: populatedPost.creator,
-      imageUrl: populatedPost.imageUrl || '',
-      mediaType: populatedPost.mediaType || '',
-      title: populatedPost.title || '',
-      caption: populatedPost.caption || '',
-      location: populatedPost.location || '',
-      people: populatedPost.people || '',
-      likes: populatedPost.likes || [],
-      comments: populatedPost.comments || [],
-      createdAt: populatedPost.createdAt,
-      updatedAt: populatedPost.updatedAt
-    };
-    
-    res.status(201).json(postResponse);
+    res.status(201).json(populatedPost);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Delete post (only creator)
+// Delete Post
 router.delete('/:id', auth, async (req, res) => {
   try {
     if (req.user.role !== 'creator') {
@@ -184,7 +167,6 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    // Delete the media file from disk
     if (post.imageUrl) {
       const filePath = path.join(__dirname, '..', post.imageUrl);
       if (fs.existsSync(filePath)) {
@@ -192,10 +174,7 @@ router.delete('/:id', auth, async (req, res) => {
       }
     }
 
-    // Delete all comments associated with this post
     await Comment.deleteMany({ post: post._id });
-
-    // Delete the post document from MongoDB
     await Post.findByIdAndDelete(req.params.id);
     res.json({ message: 'Post deleted successfully' });
   } catch (error) {
