@@ -11,15 +11,21 @@ const Comment = require('../models/Comment');
 // AZURE BLOB STORAGE SETUP
 // ==========================================
 const AZURE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-if (!AZURE_CONNECTION_STRING) {
-  console.error("CRITICAL: AZURE_STORAGE_CONNECTION_STRING is missing in env variables.");
+
+// Lazy initialization prevents crash if key is momentarily missing during build
+let containerClient;
+if (AZURE_CONNECTION_STRING) {
+  try {
+    const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_CONNECTION_STRING);
+    containerClient = blobServiceClient.getContainerClient('media');
+  } catch (err) {
+    console.error("Azure Blob Init Error:", err.message);
+  }
+} else {
+  console.error("CRITICAL: AZURE_STORAGE_CONNECTION_STRING is missing.");
 }
 
-const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_CONNECTION_STRING);
-const containerName = 'media';
-const containerClient = blobServiceClient.getContainerClient(containerName);
-
-// Configure Multer to use RAM (MemoryStorage)
+// Memory Storage (files stay in RAM, then go to Cloud)
 const upload = multer({
   storage: multer.memoryStorage(), 
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -32,21 +38,20 @@ const upload = multer({
 });
 
 // ==========================================
-// PUBLIC FEED (Fixed: NO SORTING to prevent 500 Error)
+// PUBLIC FEED (Blob Enabled, Sorting Removed)
 // ==========================================
 router.get('/public', async (req, res) => {
   try {
-    // REMOVED .sort({ createdAt: -1 })
     const posts = await Post.find()
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
-        // REMOVED sorting inside comments too
         populate: {
           path: 'user',
           select: 'username name role'
         }
       });
+      // NO .sort() here -> Prevents DB crash
     
     res.json(posts);
   } catch (error) {
@@ -58,14 +63,12 @@ router.get('/public', async (req, res) => {
 // Authenticated Feed
 router.get('/', auth, async (req, res) => {
   try {
-    // REMOVED .sort({ createdAt: -1 })
     const posts = await Post.find()
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
         populate: { path: 'user', select: 'username name role' }
       });
-    
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -93,15 +96,18 @@ router.get('/:id', auth, async (req, res) => {
 // ==========================================
 router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
-    if (req.user.role !== 'creator') {
-      return res.status(403).json({ message: 'Only creator can create posts' });
+    if (req.user.role !== 'creator') return res.status(403).json({ message: 'Only creator' });
+
+    // Check for Connection String before trying to upload
+    if (!containerClient) {
+      return res.status(500).json({ message: "Server Error: Azure Storage not configured" });
     }
 
     const { title, caption, location, people } = req.body;
     let imageUrl = null;
     let mediaType = null;
 
-    // 1. Handle File Upload to Azure
+    // Upload to Azure
     if (req.file) {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
       const fileExtension = path.extname(req.file.originalname);
@@ -117,9 +123,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       mediaType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
     }
 
-    if (!caption && !imageUrl) {
-      return res.status(400).json({ message: 'Either caption or media file is required' });
-    }
+    if (!caption && !imageUrl) return res.status(400).json({ message: 'Caption or media required' });
 
     const post = await Post.create({
       creator: req.user._id,
@@ -131,9 +135,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       people: people || '',
     });
 
-    const populatedPost = await Post.findById(post._id)
-      .populate('creator', 'username name');
-
+    const populatedPost = await Post.findById(post._id).populate('creator', 'username name');
     res.status(201).json(populatedPost);
   } catch (error) {
     console.error("Upload error:", error);
@@ -141,19 +143,16 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
   }
 });
 
-// ==========================================
-// DELETE POST (Deletes from Azure Blob)
-// ==========================================
+// Delete Post (Removes from Azure)
 router.delete('/:id', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'creator') return res.status(403).json({ message: 'Only creator can delete posts' });
+    if (req.user.role !== 'creator') return res.status(403);
 
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
-    if (post.creator.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Not authorized' });
+    if (post.creator.toString() !== req.user._id.toString()) return res.status(403);
 
-    // Delete from Azure
-    if (post.imageUrl) {
+    if (post.imageUrl && containerClient) {
       try {
         const urlParts = post.imageUrl.split('/');
         const blobName = urlParts[urlParts.length - 1]; 
@@ -162,14 +161,13 @@ router.delete('/:id', auth, async (req, res) => {
            await blockBlobClient.deleteIfExists();
         }
       } catch (err) {
-        console.error("Failed to delete blob:", err.message);
+        console.error("Blob delete error:", err.message);
       }
     }
 
     await Comment.deleteMany({ post: post._id });
     await Post.findByIdAndDelete(req.params.id);
-    
-    res.json({ message: 'Post deleted successfully' });
+    res.json({ message: 'Post deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
