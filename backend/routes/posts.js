@@ -33,36 +33,27 @@ const upload = multer({
   },
 });
 
-// Get all posts (public - no auth required)
+// ==========================================
+// FIXED ROUTE: Public Feed
+// ==========================================
 router.get('/public', async (req, res) => {
   try {
     const posts = await Post.find()
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
-        options: { sort: { createdAt: -1 } }
+        options: { sort: { createdAt: -1 } },
+        // Deep populate: Populate the 'user' field INSIDE the comments
+        populate: {
+          path: 'user',
+          select: 'username name role'
+        }
       })
       .sort({ createdAt: -1 });
     
-    // Populate user field in comments if it exists
-    const Comment = require('../models/Comment');
-    const populatedPosts = await Promise.all(posts.map(async (post) => {
-      const populatedComments = await Promise.all(
-        (post.comments || []).map(async (comment) => {
-          if (typeof comment === 'object' && comment._id) {
-            const fullComment = await Comment.findById(comment._id).populate('user', 'username name role');
-            return fullComment;
-          }
-          return comment;
-        })
-      );
-      const postObj = post.toObject();
-      postObj.comments = populatedComments;
-      return postObj;
-    }));
-    
-    res.json(populatedPosts);
+    res.json(posts);
   } catch (error) {
+    console.error("Error in public feed:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -119,19 +110,6 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
 
     const { title, caption, location, people } = req.body;
 
-    console.log('Create post request received');
-    console.log('Body:', req.body);
-    console.log('Title:', req.body.title);
-    console.log('Location:', req.body.location);
-    console.log('Caption:', req.body.caption);
-    console.log('People:', req.body.people);
-    console.log('File:', req.file && {
-      originalname: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      filename: req.file.filename,
-    });
-
     // Media is optional - can create text-only posts
     let imageUrl = null;
     let mediaType = null;
@@ -156,26 +134,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       people: people || '',
     };
 
-    console.log('Post data being saved:', postData);
-
     const post = await Post.create(postData);
-
-    console.log('Post created - Direct from DB:', {
-      id: post._id.toString(),
-      title: post.title,
-      location: post.location,
-      caption: post.caption,
-      people: post.people
-    });
-
-    // Reload from DB to ensure we have all fields
-    const freshPost = await Post.findById(post._id);
-    console.log('Fresh post from DB:', {
-      title: freshPost.title,
-      location: freshPost.location,
-      caption: freshPost.caption,
-      people: freshPost.people
-    });
 
     const populatedPost = await Post.findById(post._id)
       .populate('creator', 'username name')
@@ -203,20 +162,11 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       updatedAt: populatedPost.updatedAt
     };
     
-    console.log('Post response being sent:', {
-      title: postResponse.title,
-      location: postResponse.location,
-      caption: postResponse.caption,
-      people: postResponse.people
-    });
-
     res.status(201).json(postResponse);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-
-// Edit functionality removed - posts cannot be edited
 
 // Delete post (only creator)
 router.delete('/:id', auth, async (req, res) => {
@@ -239,9 +189,6 @@ router.delete('/:id', auth, async (req, res) => {
       const filePath = path.join(__dirname, '..', post.imageUrl);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
-        console.log('Deleted file from disk:', filePath);
-      } else {
-        console.log('File not found on disk (may have been deleted already):', filePath);
       }
     }
 
