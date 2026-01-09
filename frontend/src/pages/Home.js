@@ -35,7 +35,7 @@ const Home = () => {
 
   const fetchPosts = async () => {
     try {
-      const response = await api.get('/api/posts');
+      const response = await api.get('/api/posts/public');
       setPosts(response.data);
       setFilteredPosts(response.data);
     } catch (err) {
