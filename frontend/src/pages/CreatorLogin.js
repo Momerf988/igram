@@ -101,10 +101,6 @@ const CreatorLogin = () => {
             Back to Consumer View
           </button>
         </p>
-        <div className="demo-credentials">
-          <p><strong>Demo Credentials:</strong></p>
-          <p>Creator: creator@igram.com / creator123</p>
-        </div>
       </div>
     </div>
   );

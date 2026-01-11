@@ -18,24 +18,10 @@ const Home = () => {
     fetchPosts();
   }, []);
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      const filtered = posts.filter(post => {
-        const titleMatch = post.title?.toLowerCase().includes(query);
-        const captionMatch = post.caption?.toLowerCase().includes(query);
-        const locationMatch = post.location?.toLowerCase().includes(query);
-        return titleMatch || captionMatch || locationMatch;
-      });
-      setFilteredPosts(filtered);
-    } else {
-      setFilteredPosts(posts);
-    }
-  }, [searchQuery, posts]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = async (query = '') => {
     try {
-      const response = await api.get('/api/posts/public');
+      const url = query ? `/api/posts/public?q=${encodeURIComponent(query)}` : '/api/posts/public';
+      const response = await api.get(url);
       setPosts(response.data);
       setFilteredPosts(response.data);
     } catch (err) {
@@ -90,6 +76,11 @@ const Home = () => {
               placeholder="Search by title, caption, or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  fetchPosts(searchQuery);
+                }
+              }}
             />
           </div>
           <span className="user-info">

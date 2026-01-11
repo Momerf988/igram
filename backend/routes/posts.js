@@ -40,8 +40,20 @@ const upload = multer({
 // ==========================================
 router.get('/public', async (req, res) => {
   try {
+    let query = {};
+    if (req.query.q) {
+      const escapedQ = req.query.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedQ, 'i');
+      query = {
+        $or: [
+          { title: regex },
+          { caption: regex },
+          { location: regex }
+        ]
+      };
+    }
     // 1. Get posts from DB (Unsorted to prevent crash)
-    let posts = await Post.find()
+    let posts = await Post.find(query)
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
