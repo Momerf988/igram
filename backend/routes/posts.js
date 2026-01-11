@@ -42,6 +42,7 @@ router.get('/public', async (req, res) => {
   try {
     let query = {};
     if (req.query.q) {
+      console.log('Server-side search query:', req.query.q);
       const escapedQ = req.query.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(escapedQ, 'i');
       query = {

@@ -19,6 +19,7 @@ const Home = () => {
   }, []);
 
   const fetchPosts = async (query = '') => {
+    console.log('Fetching posts with query:', query || 'none');
     try {
       const url = query ? `/api/posts/public?q=${encodeURIComponent(query)}` : '/api/posts/public';
       const response = await api.get(url);
