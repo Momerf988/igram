@@ -12,7 +12,6 @@ const Comment = require('../models/Comment');
 // ==========================================
 const AZURE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 
-// Lazy initialization
 let containerClient;
 if (AZURE_CONNECTION_STRING) {
   try {
@@ -25,7 +24,6 @@ if (AZURE_CONNECTION_STRING) {
   console.error("CRITICAL: AZURE_STORAGE_CONNECTION_STRING is missing.");
 }
 
-// Memory Storage
 const upload = multer({
   storage: multer.memoryStorage(), 
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -38,21 +36,25 @@ const upload = multer({
 });
 
 // ==========================================
-// PUBLIC FEED (Sorted Newest First)
+// PUBLIC FEED (FIX: Sorts in JavaScript, not DB)
 // ==========================================
 router.get('/public', async (req, res) => {
   try {
-    const posts = await Post.find()
+    // 1. Get posts from DB (Unsorted to prevent crash)
+    let posts = await Post.find()
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
-        options: { sort: { createdAt: -1 } }, // Sort comments
         populate: {
           path: 'user',
           select: 'username name role'
         }
-      })
-      .sort({ createdAt: -1 }); // <--- SORTING IS ACTIVE
+      });
+      // REMOVED .sort({ createdAt: -1 }) from DB query
+
+    // 2. MANUALLY SORT in JavaScript (Newest First)
+    // This runs on your server, bypassing the Azure Index error completely.
+    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     res.json(posts);
   } catch (error) {
@@ -64,15 +66,16 @@ router.get('/public', async (req, res) => {
 // Authenticated Feed
 router.get('/', auth, async (req, res) => {
   try {
-    const posts = await Post.find()
+    let posts = await Post.find()
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
-        options: { sort: { createdAt: -1 } },
         populate: { path: 'user', select: 'username name role' }
-      })
-      .sort({ createdAt: -1 }); // <--- SORTING IS ACTIVE
+      });
     
+    // Manual Sort
+    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -86,17 +89,22 @@ router.get('/:id', auth, async (req, res) => {
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
-        options: { sort: { createdAt: -1 } },
         populate: { path: 'user', select: 'username name role' }
       });
     if (!post) return res.status(404).json({ message: 'Post not found' });
+    
+    // Sort comments if they exist
+    if (post.comments && post.comments.length > 0) {
+      post.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
     res.json(post);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Create Post
+// Create Post (Uploads to Azure)
 router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
     if (req.user.role !== 'creator') return res.status(403).json({ message: 'Only creator' });
