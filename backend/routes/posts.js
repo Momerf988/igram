@@ -12,7 +12,7 @@ const Comment = require('../models/Comment');
 // ==========================================
 const AZURE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 
-// Lazy initialization prevents crash if key is momentarily missing during build
+// Lazy initialization
 let containerClient;
 if (AZURE_CONNECTION_STRING) {
   try {
@@ -25,7 +25,7 @@ if (AZURE_CONNECTION_STRING) {
   console.error("CRITICAL: AZURE_STORAGE_CONNECTION_STRING is missing.");
 }
 
-// Memory Storage (files stay in RAM, then go to Cloud)
+// Memory Storage
 const upload = multer({
   storage: multer.memoryStorage(), 
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -38,7 +38,7 @@ const upload = multer({
 });
 
 // ==========================================
-// PUBLIC FEED (Blob Enabled, Sorting Removed)
+// PUBLIC FEED (Sorted Newest First)
 // ==========================================
 router.get('/public', async (req, res) => {
   try {
@@ -46,12 +46,13 @@ router.get('/public', async (req, res) => {
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
+        options: { sort: { createdAt: -1 } }, // Sort comments
         populate: {
           path: 'user',
           select: 'username name role'
         }
-      });
-      // NO .sort() here -> Prevents DB crash
+      })
+      .sort({ createdAt: -1 }); // <--- SORTING IS ACTIVE
     
     res.json(posts);
   } catch (error) {
@@ -67,8 +68,11 @@ router.get('/', auth, async (req, res) => {
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
+        options: { sort: { createdAt: -1 } },
         populate: { path: 'user', select: 'username name role' }
-      });
+      })
+      .sort({ createdAt: -1 }); // <--- SORTING IS ACTIVE
+    
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -82,6 +86,7 @@ router.get('/:id', auth, async (req, res) => {
       .populate('creator', 'username name')
       .populate({
         path: 'comments',
+        options: { sort: { createdAt: -1 } },
         populate: { path: 'user', select: 'username name role' }
       });
     if (!post) return res.status(404).json({ message: 'Post not found' });
@@ -91,14 +96,11 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// ==========================================
-// CREATE POST (Uploads to Azure Blob)
-// ==========================================
+// Create Post
 router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
     if (req.user.role !== 'creator') return res.status(403).json({ message: 'Only creator' });
 
-    // Check for Connection String before trying to upload
     if (!containerClient) {
       return res.status(500).json({ message: "Server Error: Azure Storage not configured" });
     }
@@ -107,7 +109,6 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
     let imageUrl = null;
     let mediaType = null;
 
-    // Upload to Azure
     if (req.file) {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
       const fileExtension = path.extname(req.file.originalname);
@@ -143,7 +144,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
   }
 });
 
-// Delete Post (Removes from Azure)
+// Delete Post
 router.delete('/:id', auth, async (req, res) => {
   try {
     if (req.user.role !== 'creator') return res.status(403);
