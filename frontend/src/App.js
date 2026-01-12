@@ -17,14 +17,7 @@ function App() {
             <Route path="/" element={<ConsumerView />} />
             <Route path="/consumer-signup" element={<ConsumerSignup />} />
             <Route path="/creator-login" element={<CreatorLogin />} />
-            <Route
-              path="/home"
-              element={
-                <PrivateRoute>
-                  <Home />
-                </PrivateRoute>
-              }
-            />
+            <Route path="/home" element={<Home />} />
           </Routes>
         </div>
       </Router>

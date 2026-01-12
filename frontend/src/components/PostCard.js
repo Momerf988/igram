@@ -109,7 +109,7 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
     }
   };
 
-  const isCreator = currentUser.role === 'creator';
+  const isCreator = currentUser?.role === 'creator';
 
   // Debug: log post data to see what we're receiving
   useEffect(() => {
@@ -121,6 +121,8 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
       people: post.people
     });
   }, [post]);
+
+  const authorName = post.creator?.name || post.creator?.username || post.user?.name || post.user?.username || 'Unknown';
 
   const mediaUrl = post.imageUrl
     ? (post.imageUrl.startsWith('http')
@@ -137,7 +139,7 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
     <div className="post-card">
       <div className="post-header">
         <div className="post-creator">
-          <strong>{post.creator.name || post.creator.username}{isCreator ? ' (Creator)' : ''}</strong>
+          <strong>{authorName}{isCreator ? ' (Creator)' : ''}</strong>
         </div>
         {isCreator && (
           <div className="post-actions">
@@ -219,7 +221,7 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
                 if (comment.user) {
                   // Check if creator - use currentUser to check role if comment.user doesn't have it
                   const isCommentCreator = comment.user.role === 'creator' || 
-                    (currentUser && currentUser.role === 'creator' && comment.user._id === currentUser.id);
+                    (currentUser?.role === 'creator' && comment.user._id === currentUser.id);
                   const displayName = comment.user.name || comment.user.username;
                   // For creator comments, always show "Name (Creator)" format
                   commentAuthor = isCommentCreator ? `${displayName} (Creator)` : displayName;

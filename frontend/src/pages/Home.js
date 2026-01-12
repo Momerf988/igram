@@ -8,7 +8,6 @@ import './Home.css';
 const Home = () => {
   const { user, logout } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
-  const [filteredPosts, setFilteredPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +23,6 @@ const Home = () => {
       const url = query ? `/api/posts/public?q=${encodeURIComponent(query)}` : '/api/posts/public';
       const response = await api.get(url);
       setPosts(response.data);
-      setFilteredPosts(response.data);
     } catch (err) {
       setError('Failed to load posts');
     } finally {
@@ -84,33 +82,41 @@ const Home = () => {
               }}
             />
           </div>
-          <span className="user-info">
-            {user.name || user.username} (Creator)
-          </span>
-          <button
-            className="create-post-btn"
-            onClick={() => setShowCreateModal(true)}
-          >
-            + Create Post
-          </button>
-          <button className="logout-btn" onClick={() => {
-            logout();
-            window.location.href = '/';
-          }}>
-            Logout
-          </button>
+          {user ? (
+            <>
+              <span className="user-info">
+                {user.name || user.username} (Creator)
+              </span>
+              <button
+                className="create-post-btn"
+                onClick={() => setShowCreateModal(true)}
+              >
+                + Create Post
+              </button>
+              <button className="logout-btn" onClick={() => {
+                logout();
+                window.location.href = '/';
+              }}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <button className="login-btn" onClick={() => window.location.href = '/login'}>
+              Login
+            </button>
+          )}
         </div>
       </header>
 
       {error && <div className="error-message">{error}</div>}
 
       <div className="posts-container">
-        {filteredPosts.length === 0 ? (
+        {posts.length === 0 ? (
           <div className="no-posts">
             {searchQuery ? 'No posts found matching your search.' : 'No posts yet. Be the first to create one!'}
           </div>
         ) : (
-          filteredPosts.map(post => (
+          posts.map(post => (
             <PostCard
               key={post._id}
               post={post}

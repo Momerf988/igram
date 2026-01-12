@@ -9,7 +9,6 @@ const ConsumerView = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
-  const [filteredPosts, setFilteredPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,26 +23,11 @@ const ConsumerView = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      const filtered = posts.filter(post => {
-        const titleMatch = post.title?.toLowerCase().includes(query);
-        const captionMatch = post.caption?.toLowerCase().includes(query);
-        const locationMatch = post.location?.toLowerCase().includes(query);
-        return titleMatch || captionMatch || locationMatch;
-      });
-      setFilteredPosts(filtered);
-    } else {
-      setFilteredPosts(posts);
-    }
-  }, [searchQuery, posts]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = async (query = '') => {
     try {
-      const response = await api.get('/api/posts/public');
+      const url = query ? `/api/posts/public?q=${encodeURIComponent(query)}` : '/api/posts/public';
+      const response = await api.get(url);
       setPosts(response.data);
-      setFilteredPosts(response.data);
     } catch (err) {
       setError('Failed to load posts');
     } finally {
@@ -103,6 +87,11 @@ const ConsumerView = () => {
               placeholder="Search by title, caption, or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  fetchPosts(searchQuery);
+                }
+              }}
             />
           </div>
           {!consumerName && (
@@ -140,12 +129,12 @@ const ConsumerView = () => {
       {error && <div className="error-message">{error}</div>}
 
       <div className="posts-container">
-        {filteredPosts.length === 0 ? (
+        {posts.length === 0 ? (
           <div className="no-posts">
             {searchQuery ? 'No posts found matching your search.' : 'No posts yet.'}
           </div>
         ) : (
-          filteredPosts.map(post => (
+          posts.map(post => (
             <PostCard
               key={post._id}
               post={post}
