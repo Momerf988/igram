@@ -228,8 +228,6 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
                 } else if (comment.consumerName) {
                   commentAuthor = comment.consumerName;
                 }
-                // Creator can only delete their own comments (not consumer comments)
-                // Consumer can only delete their own comments
                 let canDelete = false;
                 if (isCreator) {
                   // Creator can only delete comments made by authenticated users (themselves)
@@ -237,7 +235,7 @@ const PostCard = ({ post, currentUser, onPostDeleted, onLikeToggle, onCommentAdd
                 } else if (isConsumerView) {
                   // Consumer can only delete their own comments
                   canDelete = comment.consumerName === consumerName;
-                } else {
+                } else if (!isConsumerView && currentUser && currentUser.id) {
                   // Authenticated consumer can delete their own comments
                   canDelete = comment.user && (comment.user._id === currentUser.id || comment.user === currentUser.id);
                 }

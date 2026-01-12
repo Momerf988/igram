@@ -52,7 +52,7 @@ const ConsumerView = () => {
   };
 
   const handleCommentAdded = () => {
-    fetchPosts();
+    fetchPosts(lastSearchQuery);
   };
 
   const handleComment = async (postId, commentText) => {
