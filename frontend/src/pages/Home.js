@@ -49,7 +49,7 @@ const Home = () => {
   const handleLikeToggle = async (postId) => {
     try {
       await api.post(`/api/likes/${postId}`);
-      fetchPosts();
+      fetchPosts(searchQuery);
     } catch (err) {
       console.error('Failed to toggle like:', err);
     }
