@@ -97,7 +97,8 @@ const Home = () => {
               </button>
               <button className="logout-btn" onClick={() => {
                 logout();
-                window.location.href = '/';
+                // Immediate redirect to prevent button flicker
+                setTimeout(() => window.location.href = '/', 0);
               }}>
                 Logout
               </button>

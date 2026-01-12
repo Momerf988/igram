@@ -109,7 +109,8 @@ const ConsumerView = () => {
               <button className="logout-btn" onClick={() => {
                 localStorage.removeItem('consumerName');
                 setConsumerName('');
-                window.location.href = '/';
+                // Immediate redirect to prevent any UI flicker
+                setTimeout(() => window.location.href = '/', 0);
               }}>
                 Logout
               </button>
