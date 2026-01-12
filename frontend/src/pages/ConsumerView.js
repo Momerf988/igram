@@ -12,6 +12,7 @@ const ConsumerView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [lastSearchQuery, setLastSearchQuery] = useState('');
   const [consumerName, setConsumerName] = useState('');
 
   useEffect(() => {
@@ -44,7 +45,7 @@ const ConsumerView = () => {
       await api.post(`/api/likes/public/${postId}`, {
         consumerName: consumerName.trim()
       });
-      fetchPosts();
+      fetchPosts(lastSearchQuery);
     } catch (err) {
       console.error('Failed to toggle like:', err);
     }
@@ -65,7 +66,7 @@ const ConsumerView = () => {
         text: commentText,
         consumerName: consumerName.trim()
       });
-      fetchPosts();
+      fetchPosts(lastSearchQuery);
     } catch (err) {
       console.error('Failed to add comment:', err);
     }
@@ -89,6 +90,7 @@ const ConsumerView = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
+                  setLastSearchQuery(searchQuery);
                   fetchPosts(searchQuery);
                 }
               }}
