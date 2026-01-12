@@ -12,6 +12,7 @@ const Home = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [lastSearchQuery, setLastSearchQuery] = useState('');
 
   useEffect(() => {
     fetchPosts();
@@ -49,14 +50,14 @@ const Home = () => {
   const handleLikeToggle = async (postId) => {
     try {
       await api.post(`/api/likes/${postId}`);
-      fetchPosts(searchQuery);
+      fetchPosts(lastSearchQuery);
     } catch (err) {
       console.error('Failed to toggle like:', err);
     }
   };
 
   const handleCommentAdded = () => {
-    fetchPosts();
+    fetchPosts(lastSearchQuery);
   };
 
   if (loading) {
@@ -77,6 +78,7 @@ const Home = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
+                  setLastSearchQuery(searchQuery);
                   fetchPosts(searchQuery);
                 }
               }}
